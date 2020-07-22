@@ -78,8 +78,7 @@ fn backtrace_memo_fib(memo: &mut HashMap<u128, u128>, fib_num: u128) -> u128 {
         Some(result) => result,
         None => {
             let result = match fib_num {
-                0 => 0,
-                1 => 1,
+                0 | 1 => fib_num,
                 n => backtrace_memo_fib(memo, n - 1) + backtrace_memo_fib(memo, n - 2),
             };
             memo.insert(fib_num, result.clone());
