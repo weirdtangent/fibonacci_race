@@ -3,6 +3,26 @@ use std::collections::HashMap;
 use std::env;
 use std::time::Instant;
 
+#[test]
+fn backtrace_works() {
+    assert_eq!(backtrace_fib(20), 6765);
+}
+
+#[test]
+fn backtrace_memo_works() {
+    assert_eq!(backtrace_memo_fib(&mut HashMap::new(), 20), 6765);
+}
+
+#[test]
+fn dynamic_works() {
+    assert_eq!(dynamic_fib(20), 6765);
+}
+
+#[test]
+fn cached_works() {
+    assert_eq!(cached_fib(20), 6765);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -23,7 +43,7 @@ fn main() {
 fn solve_each(fib_num: u128) {
     // see how long it takes to solve what you provided
     let now = Instant::now();
-    let _backtrace = backtrace_fib(fib_num);
+    let _ = backtrace_fib(fib_num);
     let backtrace_time = now.elapsed().as_nanos();
     println!(
         "  Solving fib:{} with simple backtracing and recursion            took {} ns",
@@ -32,7 +52,7 @@ fn solve_each(fib_num: u128) {
 
     // find a fib number that takes longer to solve the backtrace_memo way
     let now = Instant::now();
-    let _backtrace_memo = backtrace_memo_fib(&mut HashMap::new(), fib_num);
+    let _ = backtrace_memo_fib(&mut HashMap::new(), fib_num);
     let backtrace_memo_time = now.elapsed().as_nanos();
     println!(
         "  Solving fib:{} with backtracing and recursion using memoization took {} ns",
@@ -41,7 +61,7 @@ fn solve_each(fib_num: u128) {
 
     // find a fib number that takes longer to solve the dynamic way
     let now = Instant::now();
-    let _dynamic = dynamic_fib(fib_num);
+    let _ = dynamic_fib(fib_num);
     let dynamic_time = now.elapsed().as_nanos();
     println!(
         "  Solving fib:{} with dynamic programming using memoization       took {} ns",
@@ -50,10 +70,10 @@ fn solve_each(fib_num: u128) {
 
     // find a fib number that takes longer to solve the cached way
     let now = Instant::now();
-    let _cached = cached_fib(fib_num);
+    let _ = cached_fib(fib_num);
     let cached_time = now.elapsed().as_nanos();
     println!(
-        "  Solving fib:{} with cached programming using memoization        took {} ns",
+        "  Solving fib:{} with cached function crate                       took {} ns",
         fib_num, cached_time
     );
 }
@@ -103,24 +123,4 @@ fn cached_fib(fib_num: u128) -> u128 {
         return fib_num;
     }
     cached_fib(fib_num - 1) + cached_fib(fib_num - 2)
-}
-
-#[test]
-fn backtrace_works() {
-    assert_eq!(backtrace_fib(20), 6765);
-}
-
-#[test]
-fn backtrace_memo_works() {
-    assert_eq!(backtrace_memo_fib(&mut HashMap::new(), 20), 6765);
-}
-
-#[test]
-fn dynamic_works() {
-    assert_eq!(dynamic_fib(20), 6765);
-}
-
-#[test]
-fn cached_works() {
-    assert_eq!(cached_fib(20), 6765);
 }
