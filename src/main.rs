@@ -1,26 +1,15 @@
 use cached::proc_macro::cached;
 use std::collections::HashMap;
 use std::env;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[test]
-fn backtrace_works() {
+fn test_each_version() {
     assert_eq!(backtrace_fib(20), 6765);
-}
-
-#[test]
-fn backtrace_memo_works() {
     assert_eq!(backtrace_memo_fib(&mut HashMap::new(), 20), 6765);
-}
-
-#[test]
-fn dynamic_works() {
     assert_eq!(dynamic_fib(20), 6765);
-}
-
-#[test]
-fn cached_works() {
     assert_eq!(cached_fib(20), 6765);
+    assert_eq!(cached_dynamic_fib(20), 6765);
 }
 
 fn main() {
@@ -32,54 +21,53 @@ fn main() {
     }
 
     let fib_num = args[1].parse::<u128>().unwrap();
-
+    println!("\nThe first time solving will be the slowest\n");
     solve_each(fib_num);
-
-    println!("\nWhat about solving it a second time, each way?\n");
-
+    println!("What about solving it a second or third time, anyone faster this time?\n");
+    solve_each(fib_num);
     solve_each(fib_num);
 }
 
 fn solve_each(fib_num: u128) {
-    // see how long it takes to solve what you provided
     let now = Instant::now();
     let _ = backtrace_fib(fib_num);
-    let backtrace_time = now.elapsed().as_nanos();
-    println!(
-        "  Solving fib:{} with simple backtracing and recursion            took {} ns",
-        fib_num, backtrace_time
-    );
+    let elapsed = now.elapsed();
+    print_results(fib_num, "simple backtracing/recursion", elapsed);
 
-    // find a fib number that takes longer to solve the backtrace_memo way
     let now = Instant::now();
     let _ = backtrace_memo_fib(&mut HashMap::new(), fib_num);
-    let backtrace_memo_time = now.elapsed().as_nanos();
-    println!(
-        "  Solving fib:{} with backtracing and recursion using memoization took {} ns",
-        fib_num, backtrace_memo_time
-    );
+    let elapsed = now.elapsed();
+    print_results(fib_num, "backtracing/recursion with memoization", elapsed);
 
-    // find a fib number that takes longer to solve the dynamic way
     let now = Instant::now();
     let _ = dynamic_fib(fib_num);
-    let dynamic_time = now.elapsed().as_nanos();
-    println!(
-        "  Solving fib:{} with dynamic programming using memoization       took {} ns",
-        fib_num, dynamic_time
-    );
+    let elapsed = now.elapsed();
+    print_results(fib_num, "dynamic programming with memoization", elapsed);
 
-    // find a fib number that takes longer to solve the cached way
     let now = Instant::now();
     let _ = cached_fib(fib_num);
-    let cached_time = now.elapsed().as_nanos();
+    let elapsed = now.elapsed();
+    print_results(fib_num, "cached function", elapsed);
+
+    let now = Instant::now();
+    let _ = cached_dynamic_fib(fib_num);
+    let elapsed = now.elapsed();
+    print_results(fib_num, "cached dynamic function", elapsed);
+
+    println!();
+}
+
+fn print_results(fib_num: u128, desc: &str, elapsed: Duration) {
     println!(
-        "  Solving fib:{} with cached function crate                       took {} ns",
-        fib_num, cached_time
+        "  Solving fib:{} with {:50} took {:>15} ns",
+        fib_num,
+        desc,
+        elapsed.as_nanos()
     );
 }
 
 fn backtrace_fib(fib_num: u128) -> u128 {
-    if fib_num < 2 {
+    if fib_num == 0 || fib_num == 1 {
         return fib_num;
     }
     backtrace_fib(fib_num - 1) + backtrace_fib(fib_num - 2)
@@ -105,8 +93,7 @@ fn dynamic_fib(fib_num: u128) -> u128 {
     memo.insert(0, 0);
     memo.insert(1, 1);
     match fib_num {
-        0 => {} // already set
-        1 => {} // already set
+        0 | 1 => {} // already set
         n => {
             for i in 2..=n {
                 let result = *memo.get(&(i - 1)).unwrap() + *memo.get(&(i - 2)).unwrap();
@@ -121,6 +108,17 @@ fn dynamic_fib(fib_num: u128) -> u128 {
 fn cached_fib(fib_num: u128) -> u128 {
     if fib_num == 0 || fib_num == 1 {
         return fib_num;
+    }
+    cached_fib(fib_num - 1) + cached_fib(fib_num - 2)
+}
+
+#[cached(size = 100)]
+fn cached_dynamic_fib(fib_num: u128) -> u128 {
+    if fib_num == 0 || fib_num == 1 {
+        return fib_num;
+    }
+    for i in 2..=fib_num {
+        let _ = cached_fib(i);
     }
     cached_fib(fib_num - 1) + cached_fib(fib_num - 2)
 }
