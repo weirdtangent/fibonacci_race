@@ -8,6 +8,7 @@ fn test_each_version() {
     assert_eq!(backtrace_fib(20), 6765);
     assert_eq!(backtrace_memo_fib(&mut HashMap::new(), 20), 6765);
     assert_eq!(dynamic_fib(20), 6765);
+    assert_eq!(better_dynamic_fib(20), 6765);
     assert_eq!(cached_fib(20), 6765);
 }
 
@@ -59,7 +60,20 @@ fn solve_each(fib_num: u128) {
     let now = Instant::now();
     let _ = dynamic_fib(fib_num);
     let elapsed = now.elapsed();
-    print_results(fib_num, "dynamic programming with memoization", elapsed);
+    print_results(
+        fib_num,
+        "dynamic programming with memoization via HashMap",
+        elapsed,
+    );
+
+    let now = Instant::now();
+    let _ = better_dynamic_fib(fib_num);
+    let elapsed = now.elapsed();
+    print_results(
+        fib_num,
+        "dynamic programming with memoization via tuple",
+        elapsed,
+    );
 
     let now = Instant::now();
     let _ = cached_fib(fib_num);
@@ -78,6 +92,9 @@ fn print_results(fib_num: u128, desc: &str, elapsed: Duration) {
     );
 }
 
+// Simple recursion to backtrace our way backwards down the chain
+// to 2 (which gets fixed answers for 0 and 1) and then unwinds to
+// get the answer
 fn backtrace_fib(fib_num: u128) -> u128 {
     if fib_num == 0 || fib_num == 1 {
         return fib_num;
@@ -85,6 +102,10 @@ fn backtrace_fib(fib_num: u128) -> u128 {
     backtrace_fib(fib_num - 1) + backtrace_fib(fib_num - 2)
 }
 
+// Simliar to above, but brings in a HashMap for memoization (weird
+// that this is the only way to keep the memo around for future calls)
+// otherwise, works the same as the backtrace before, it is justs faster
+// because of the memoization
 fn backtrace_memo_fib(memo: &mut HashMap<u128, u128>, fib_num: u128) -> u128 {
     match memo.get(&fib_num).map(|answer| answer.clone()) {
         Some(result) => result,
@@ -99,6 +120,9 @@ fn backtrace_memo_fib(memo: &mut HashMap<u128, u128>, fib_num: u128) -> u128 {
     }
 }
 
+// Loop thru the chain purposely instead of relying on recursion
+// This code is less idiomatic of Rust though, uses an overly complex
+// HashMap and keeps the entire chain in memory (see next method)
 fn dynamic_fib(fib_num: u128) -> u128 {
     let mut memo = HashMap::new();
     memo.insert(0, 0);
@@ -115,6 +139,27 @@ fn dynamic_fib(fib_num: u128) -> u128 {
     *memo.get(&fib_num).unwrap()
 }
 
+// Similar idea as above, but uses a tuple instead of a HashMap (duh)
+// and constructs the chain of Fib numbers keeping ONLY the last 2
+// as it works it's way to the fib_num
+fn better_dynamic_fib(fib_num: u128) -> u128 {
+    let mut memo = (0, 1);
+
+    match fib_num {
+        0 | 1 => fib_num,
+        _ => {
+            for _ in 2..=fib_num {
+                memo = (memo.1, memo.0 + memo.1)
+            }
+            memo.1
+        }
+    }
+}
+
+// cached crate memoizes input->output of this function for us so
+// we don't have to do any of it. We just do a simple recursive
+// backtrace and everything is sped up because of memoization in
+// the background
 #[cached(size = 200)]
 fn cached_fib(fib_num: u128) -> u128 {
     if fib_num == 0 || fib_num == 1 {
